@@ -1,0 +1,117 @@
+---
+title: "Mini Project 2"
+author: "Breckin Hadley and Kobe Kirk"
+format: pdf
+editor: visual
+---
+
+```{r}
+#| include: FALSE
+
+library(tidyverse)
+library(stringr)
+library(rvest)
+library(polite)
+library(sf)
+library(maps)
+library(viridis)
+library(leaflet)
+library(htmltools)
+library(janitor)
+library(purrr)
+```
+
+
+One team function
+```{r}
+
+safe_get <- function(page, css_selector, index = 1) {
+  vals <- page |>
+    html_nodes(css_selector) |>
+    html_text(trim = TRUE)
+  
+  if (length(vals) < index || length(vals) == 0) return(NA_character_)
+  vals[index]
+}
+
+seahawks <- function(url) {
+  Sys.sleep(2)
+  session <- bow(url, force = TRUE)
+  page <- scrape(session)
+
+  team <- "SEA"
+  pass_attempts <- safe_get(page, "tfoot .right:nth-child(8)")
+  rush_attempts <- safe_get(page, "#adv_rushing tfoot .right:nth-child(7)")     
+  indendend_air_yard <- safe_get(page, "tfoot .right:nth-child(9)")     
+  on_target <- safe_get(page, "tfoot .right:nth-child(24)")
+  rush_before_contact <- safe_get(page, "tfoot .right:nth-child(11)")
+  win_pct <- 0.75   
+  
+
+  tibble(
+    team,
+    pass_attempts,
+    rush_attempts,
+    indendend_air_yard,
+    on_target,
+    rush_before_contact,
+    win_pct
+
+  )
+}
+
+seahawks("https://www.pro-football-reference.com/teams/sea/2025_advanced.htm")
+
+
+
+
+```
+
+```{r}
+safe_get <- function(page, css_selector, index = 1) {
+  vals <- page |>
+    html_nodes(css_selector) |>
+    html_text(trim = TRUE)
+  
+  if (length(vals) < index || length(vals) == 0) return(NA_character_)
+  vals[index]
+}
+
+team_stats <- function(team_abbr, year = 2025) {
+  url <- glue("https://www.pro-football-reference.com/teams/{team_abbr}/{year}_advanced.htm") |> as.character()
+
+  Sys.sleep(2)
+  session <- bow(url, force = TRUE)
+  page <- scrape(session)
+
+  html_raw <- as.character(page)
+  page_fixed <- read_html(gsub("<!--|-->", "", html_raw))
+
+  team <- toupper(team_abbr)
+  pass_attempts <- safe_get(page_fixed, "tfoot .right:nth-child(8)")
+  rush_attempts <- safe_get(page_fixed, "#adv_rushing tfoot .right:nth-child(7)")     
+  indendend_air_yard <- safe_get(page_fixed, "tfoot .right:nth-child(9)")     
+  on_target <- safe_get(page_fixed, "tfoot .right:nth-child(24)")
+  rush_before_contact <- safe_get(page_fixed, "#adv_rushing tfoot .right:nth-child(11)")
+
+  tibble(
+    team,
+    pass_attempts,
+    rush_attempts,
+    indendend_air_yard,
+    on_target,
+    rush_before_contact
+  )
+}
+
+nfl_teams <- c(
+  "crd", "atl", "rav", "buf", "car", "chi", "cin", "cle",
+  "dal", "den", "det", "gnb", "htx", "clt", "jax", "kan",
+  "rai", "sdg", "ram", "mia", "min", "nwe", "nor", "nyg",
+  "nyj", "phi", "pit", "sfo", "sea", "tam", "oti", "was"
+)
+
+all_team_stats <- map_dfr(nfl_teams, team_stats)
+
+print(all_team_stats)
+```
