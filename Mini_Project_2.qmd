@@ -88,6 +88,7 @@ team_stats <- function(team_abbr, year = 2025) {
   page_fixed <- read_html(gsub("<!--|-->", "", html_raw))
 
   team <- toupper(team_abbr)
+  Win_Loss <-
   pass_attempts <- safe_get(page_fixed, "tfoot .right:nth-child(8)")
   rush_attempts <- safe_get(page_fixed, "#adv_rushing tfoot .right:nth-child(7)")     
   indendend_air_yard <- safe_get(page_fixed, "tfoot .right:nth-child(9)")     
@@ -114,4 +115,79 @@ nfl_teams <- c(
 all_team_stats <- map_dfr(nfl_teams, team_stats)
 
 print(all_team_stats)
+
+
+
+hockey_tbl <- map2("CHI", 2020:2024, all_team_stats) |>
+  list_rbind() |>
+  filter(player != "Teams Totals")
+hockey_tbl
+view(hockey_tbl)
+```
+
+
+```{r}
+library(tidyverse)
+library(glue)
+library(rvest)
+library(polite)
+
+#Safe Git Function
+safe_get <- function(page, css_selector, index = 1) {
+  vals <- page |>
+    html_nodes(css_selector) |>
+    html_text(trim = TRUE)
+  
+  if (length(vals) < index || length(vals) == 0) return(NA_character_)
+  vals[index]
+}
+
+# Stat Scraping fucntion
+team_stats <- function(team_abbr, year = 2025) {
+  url <- glue("https://www.pro-football-reference.com/teams/{team_abbr}/{year}_advanced.htm") |> as.character()
+
+  Sys.sleep(2)
+  session <- bow(url, force = TRUE)
+  page <- scrape(session)
+
+  html_raw <- as.character(page)
+  page_fixed <- read_html(gsub("<!--|-->", "", html_raw))
+
+  team <- toupper(team_abbr)
+  pass_attempts <- safe_get(page_fixed, "tfoot .right:nth-child(8)")
+  rush_attempts <- safe_get(page_fixed, "#adv_rushing tfoot .right:nth-child(7)")     
+  indendend_air_yard <- safe_get(page_fixed, "tfoot .right:nth-child(9)")     
+  on_target <- safe_get(page_fixed, "tfoot .right:nth-child(24)")
+  rush_before_contact <- safe_get(page_fixed, "#adv_rushing tfoot .right:nth-child(11)")
+
+  tibble(
+    team,
+    year,
+    pass_attempts,
+    rush_attempts,
+    indendend_air_yard,
+    on_target,
+    rush_before_contact
+  )
+}
+
+#Abbreviation list
+nfl_teams <- c(
+  "crd", "atl", "rav", "buf", "car", "chi", "cin", "cle",
+  "dal", "den", "det", "gnb", "htx", "clt", "jax", "kan",
+  "rai", "sdg", "ram", "mia", "min", "nwe", "nor", "nyg",
+  "nyj", "phi", "pit", "sfo", "sea", "tam", "oti", "was"
+)
+
+# Table for years 2020-2024
+years <- 2020:2024
+teams <- nfl_teams
+
+nfl_tbl <- expand_grid(team_abbr = teams, year = years) |>
+  mutate(data = map2(team_abbr, year, team_stats)) |>
+  pull(data) |>                  
+  list_rbind()  
+
+nfl_tbl
+
 ```
