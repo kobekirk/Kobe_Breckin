@@ -24,21 +24,21 @@ library(purrr)
 One team function
 
 ```{r}
-
+# creates a function to extract text from HTML nodes
 safe_get <- function(page, css_selector, index = 1) {
-  vals <- page |>
-    html_nodes(css_selector) |>
-    html_text(trim = TRUE)
-  
+  vals <- page |> # selects HTML nodes from page
+    html_nodes(css_selector) |> # extracts nodes using CSS selector
+    html_text(trim = TRUE) # extracts and trims text
+# returns NA if selector doesn't return enough values, otherwise returns the desired value  
   if (length(vals) < index || length(vals) == 0) return(NA_character_)
   vals[index]
 }
-
+# function to scrape team advanceed stats
 seahawks <- function(url) {
-  Sys.sleep(2)
-  session <- bow(url, force = TRUE)
-  page <- scrape(session)
-
+  Sys.sleep(2) # this pauses between requests, to be polite
+  session <- bow(url, force = TRUE) # bows to create a session, also to be polite
+  page <- scrape(session) # scrapes page HTML
+# extracts team and specific stats using selector gadget
   team <- "SEA"
   pass_attempts <- safe_get(page, "tfoot .right:nth-child(8)")
   rush_attempts <- safe_get(page, "#adv_rushing tfoot .right:nth-child(7)")     
@@ -47,7 +47,7 @@ seahawks <- function(url) {
   rush_before_contact <- safe_get(page, "tfoot .right:nth-child(11)")
   win_pct <- 0.75   
   
-
+# returns the results as a tibble
   tibble(
     team,
     pass_attempts,
@@ -59,7 +59,7 @@ seahawks <- function(url) {
 
   )
 }
-
+# runs seahawks function to scrape data and create tibble from provided url
 seahawks("https://www.pro-football-reference.com/teams/sea/2025_advanced.htm")
 
 
@@ -69,33 +69,33 @@ seahawks("https://www.pro-football-reference.com/teams/sea/2025_advanced.htm")
 
 One Team Function 2
 ```{r}
-
+# creates a function to extract text from HTML nodes
 safe_get <- function(page, css_selector, index = 1) {
   vals <- page |>
     html_nodes(css_selector) |>
     html_text(trim = TRUE)
-  
+  # returns NA if selector doesn't return enough values, otherwise returns the desired value 
   if (length(vals) < index || length(vals) == 0) return(NA_character_)
   vals[index]
 }
-
+# function to scrape team record and points scored
 seahawks2 <- function(url) {
   Sys.sleep(2)
   session <- bow(url, force = TRUE)
   page <- scrape(session)
-
+# extracts team, and record and points scored using selector gadget
   team <- "SEA"
   record <- safe_get(page, "tfoot .left+ .right")
   points_scored <- safe_get(page, "tfoot .right:nth-child(9)")     
   
-
+# returns the results as a tibble
   tibble(
     team,
     record,
     points_scored
   )
 }
-
+# runs seahawks2 function to scrape data and create tibble from provided url
 seahawks2("https://www.pro-football-reference.com/teams/sea/2024/gamelog/")
 ```
 
@@ -108,34 +108,34 @@ library(glue)
 library(rvest)
 library(polite)
 
-#Safe Git Function
+# creates a function to extract text from HTML nodes
 safe_get <- function(page, css_selector, index = 1) {
   vals <- page |>
     html_nodes(css_selector) |>
     html_text(trim = TRUE)
-  
+  # returns NA if selector doesn't return enough values, otherwise returns the desired value 
   if (length(vals) < index || length(vals) == 0) return(NA_character_)
   vals[index]
 }
 
-# Stat Scraping fucntion
+# extracts team advanced stats
 team_stats <- function(team_abbr, year = 2025) {
   url <- glue("https://www.pro-football-reference.com/teams/{team_abbr}/{year}_advanced.htm") |> as.character()
 
-  Sys.sleep(2)
-  session <- bow(url, force = TRUE)
-  page <- scrape(session)
-
+  Sys.sleep(2) # this pauses between requests, to be polite
+  session <- bow(url, force = TRUE) # bows to create a session, also to be polite
+  page <- scrape(session) # scrapes page HTML
+# fixes hidden HTML comments so tables can be read correctly
   html_raw <- as.character(page)
   page_fixed <- read_html(gsub("<!--|-->", "", html_raw))
-
+# extracts team abbreviation and specific stats using selector gadget
   team <- toupper(team_abbr)
   pass_attempts <- safe_get(page_fixed, "tfoot .right:nth-child(8)")
   rush_attempts <- safe_get(page_fixed, "#adv_rushing tfoot .right:nth-child(7)")     
   indendend_air_yard <- safe_get(page_fixed, "tfoot .right:nth-child(9)")     
   on_target <- safe_get(page_fixed, "tfoot .right:nth-child(24)")
   rush_before_contact <- safe_get(page_fixed, "#adv_rushing tfoot .right:nth-child(11)")
-
+# returns results as a tibble
   tibble(
     team,
     year,
@@ -147,7 +147,7 @@ team_stats <- function(team_abbr, year = 2025) {
   )
 }
 
-#Abbreviation list
+# creates a vector of all NFL team abbreviations
 nfl_teams <- c(
   "crd", "atl", "rav", "buf", "car", "chi", "cin", "cle",
   "dal", "den", "det", "gnb", "htx", "clt", "jax", "kan",
@@ -155,74 +155,76 @@ nfl_teams <- c(
   "nyj", "phi", "pit", "sfo", "sea", "tam", "oti", "was"
 )
 
-# Table for years 2020-2024
+# defines the years to scrape
 years <- 2020:2024
 teams <- nfl_teams
+# generates all team-year combinations and scrapes stats
+nfl_tbl <- expand_grid(team_abbr = teams, year = years) |> # all team-year combinations
+  mutate(data = map2(team_abbr, year, team_stats)) |> # scrape each page
+  pull(data) |>  # extracts scraped data                 
+  list_rbind()  # combines all of the data into one tibble
 
-nfl_tbl <- expand_grid(team_abbr = teams, year = years) |>
-  mutate(data = map2(team_abbr, year, team_stats)) |>
-  pull(data) |>                  
-  list_rbind()  
-
-nfl_tbl
+nfl_tbl # view the data set
 
 ```
 
 
 For loop 2
 ```{r}
+# creates a function to extract text from HTML nodes
 safe_get <- function(page, css_selector, index = 1) {
   vals <- page |>
     html_nodes(css_selector) |>
     html_text(trim = TRUE)
-  
+ # returns NA if selector doesn't return enough values, otherwise returns the desired value  
   if (length(vals) < index || length(vals) == 0) return(NA_character_)
   vals[index]
 }
-
+# extracts team stats
 team_stats2 <- function(team_abbr, year = 2024) {
   url <- glue("https://www.pro-football-reference.com/teams/{team_abbr}/{year}/gamelog/") |> as.character()
 
-  Sys.sleep(2)
-  session <- bow(url, force = TRUE)
-  page <- scrape(session)
-
+  Sys.sleep(2) # this pauses between requests, to be polite
+  session <- bow(url, force = TRUE) # bows to create a session, also to be polite
+  page <- scrape(session) # scrapes page HTML
+# fixes hidden HTML comments so tables can be read correctly
   html_raw <- as.character(page)
   page_fixed <- read_html(gsub("<!--|-->", "", html_raw))
-
+# extracts team abbreviation and specific stats using selector gadget
   team <- toupper(team_abbr)
   record <- safe_get(page, "tfoot .left+ .right")
   points_scored <- safe_get(page, "tfoot .right:nth-child(9)")  
-
+# returns results as a tibble
   tibble(
     team,
     record,
     points_scored
   )
 }
-
+# creates a vector of all NFL team abbreviations
 nfl_teams <- c(
   "crd", "atl", "rav", "buf", "car", "chi", "cin", "cle",
   "dal", "den", "det", "gnb", "htx", "clt", "jax", "kan",
   "rai", "sdg", "ram", "mia", "min", "nwe", "nor", "nyg",
   "nyj", "phi", "pit", "sfo", "sea", "tam", "oti", "was"
 )
-
+# defines the years to scrape
 years <- 2020:2024
 teams <- nfl_teams
+# generates all team-year combinations and scrapes stats
+nfl_tbl2 <- expand_grid(team_abbr = teams, year = years) |> # all team-year combinations
+  mutate(data = map2(team_abbr, year, team_stats2)) |> # scrape each page
+  pull(data) |> # extracts scraped data
+  list_rbind() # combines all of the data into one tibble
 
-nfl_tbl2 <- expand_grid(team_abbr = teams, year = years) |>
-  mutate(data = map2(team_abbr, year, team_stats2)) |>
-  pull(data) |>
-  list_rbind()
-
-nfl_tbl2
+nfl_tbl2 # view the data set
 ```
 
 
 
 ```{r}
+# merges the two tables by team name
 full_table <- left_join(nfl_tbl,nfl_tbl2, join_by(team))
-full_table
+full_table # view final data set
 
 ```
