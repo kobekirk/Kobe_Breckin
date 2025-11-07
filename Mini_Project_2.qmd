@@ -21,8 +21,8 @@ library(janitor)
 library(purrr)
 ```
 
-
 One team function
+
 ```{r}
 
 safe_get <- function(page, css_selector, index = 1) {
@@ -124,7 +124,6 @@ hockey_tbl <- map2("CHI", 2020:2024, all_team_stats) |>
 hockey_tbl
 view(hockey_tbl)
 ```
-
 
 ```{r}
 library(tidyverse)
