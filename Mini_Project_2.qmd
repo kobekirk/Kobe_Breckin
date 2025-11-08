@@ -197,6 +197,7 @@ team_stats2 <- function(team_abbr, year = 2024) {
 # returns results as a tibble
   tibble(
     team,
+    year,
     record,
     points_scored
   )
@@ -224,7 +225,7 @@ nfl_tbl2 # view the data set
 
 ```{r}
 # merges the two tables by team name
-full_table <- left_join(nfl_tbl,nfl_tbl2, join_by(team))
+full_table <- left_join(nfl_tbl,nfl_tbl2, join_by(team,year))
 full_table # view final data set
 
 ```
