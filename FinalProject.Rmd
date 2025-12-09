@@ -2,6 +2,8 @@
 title: "NFL Project"
 output: 
   flexdashboard::flex_dashboard:
+    theme: spacelab
+    orientation: columns
 runtime: shiny
 ---
 
@@ -40,7 +42,9 @@ full_table <- full_table |>
     losses = as.numeric(str_extract(record, "(?<=-)[0-9]+")),
     win_percentage = wins / (wins + losses),
     wins_per_pa = wins / pass_attempts,
-    wins_per_ra = wins / rush_attempts
+    wins_per_ra = wins / rush_attempts,
+    rush_percentage = rush_attempts / (rush_attempts + pass_attempts),
+    pass_percentage = pass_attempts / (rush_attempts + pass_attempts)
   )
 ```
 
@@ -53,22 +57,6 @@ Column {data-width = 200}
 Our sources of data come from Pro-Football-Reference.com, which is an online statistics database containing advanced, recent and historical data from NFL games and seasons. Within Pro-Football-Reference.com, we are extracting points scored, pass attempts, and rush attempts from the “Team Stats and Rankings” table, and record from the “Schedule & Game Results” table (ex. 2024 Patriots Statistics). We are also extracting intended air yards and on-target percentage from the “Advanced Passing” table and rushing yards before contact per rush attempt from the “Advanced Rushing” table (ex. 2024 Patriots Advanced Stats). Our final table from Mini-Project 2 is 160 rows (32 teams x 5 seasons) by 9 columns (the 7 underlined variables above, plus team and year). Some variables we have yet to generate from our final table from Mini-Project 2 are intended air yards per pass attempt (intended air yards / pass attempts), wins and losses (extracted from record variable, ex. 11-6 means wins = 11 and losses = 6), winning percentage (wins / (wins + losses)), points per pass attempt (points scored / pass attempts), points per rush attempt (points scored / rush attempts), wins per pass attempt (wins / pass attempts), and wins per rush attempt (wins / rush attempts).
 
 One question we plan to address is: How does an NFL team’s total pass/rush attempts in a given season affect the amount of points that team scores in the season? Similarly, we also plan to address the question: How does an NFL team’s total pass/rush attempts in a given season affect the number of wins that team achieves in the season? While these are the two main questions we plan to answer and graphically depict, we will also answer a subset of questions with our interactive graphs. For example, using Graph 1 (see below), a user could answer the question: What NFL team had the most intended air yards per pass attempt in 2022, and how did that correlate to winning percentage? Using Graph 2 (see below), a user could answer the question: How did the Seattle Seahawks number of rushing attempts change over the past 5 seasons, and in turn, how did their number of wins achieved change each year? Using Graph 3 (see below), a user could answer the question: What NFL team had the highest on-target percentage in the 2023 season? Or, what NFL team had the most pass attempts in the 2021 season? Or, what NFL team had the least amount of wins in the 2024 NFL season? We are planning on using a quarto dashboard in qmd to create our shiny app, because we have gained the most experience working with quarto over the semester.
-
-
-
-Our analysis
-==========================
-
-Column {data-width = 200}
--------------------------
-
-```{r}
-
-
-
-```
-
-
 
 
 Interactive EDA Models
@@ -132,6 +120,13 @@ metrics <- c(
   "wins_per_ra"
 )
 
+year1 <-c(2020,
+         2021,
+         2022,
+         2023,
+         2024
+)
+
 selectInput(
   "metric",
   "Choose a metric for x-axis:",
@@ -140,21 +135,33 @@ selectInput(
   multiple = FALSE
 )
 
-renderPlot({ req(input$metric) 
- ggplot(full_table, aes(
-  x = reorder(team, -.data[[input$metric]]),
-  y = .data[[input$metric]],
-  fill = team
-)) +
-  geom_col(alpha = 0.9) +
-  scale_fill_manual(values = nfl_colors) +
-  labs(
-    x = "Team",
-    y = input$metric,
-    title = paste("NFL Team:", input$metric)
-  ) +
-  theme_minimal(base_size = 16) +
-  theme(legend.position = "none")
+selectInput(
+  "year1",
+  "Select a year:",
+  choices = year1,
+  multiple = FALSE)
+
+renderPlot({
+  req(input$metric, input$year1)
+  
+  # Filter by selected year
+  filtered <- full_table|> 
+    dplyr::filter(year == input$year1)
+  
+  ggplot(filtered, aes(
+    x = reorder(team, -.data[[input$metric]]),
+    y = .data[[input$metric]],
+    fill = team
+  )) +
+    geom_col(alpha = 0.9) +
+    scale_fill_manual(values = nfl_colors) +
+    labs(
+      x = "Team",
+      y = input$metric,
+      title = paste("NFL Team:", input$metric, "-", input$year1)
+    ) +
+    theme_minimal(base_size = 16) +
+    theme(legend.position = "none")
 })
 ```
 
@@ -167,22 +174,22 @@ renderPlot({
   req(input$year)
 
   # Filter to selected year and ensure one point per team
-  df <- full_table %>%
-    filter(year == input$year) %>%
+  df <- full_table |>
+    filter(year == input$year) |>
     distinct(team, .keep_all = TRUE)  # team column contains 3-letter abbrevs
 
   # Compute league averages
-  nfl_avg_pass <- mean(df$pass_attempts, na.rm = TRUE)
-  nfl_avg_rush <- mean(df$rush_attempts, na.rm = TRUE)
+  nfl_avg_pass <- mean(df$pass_percentage, na.rm = TRUE)
+  nfl_avg_rush <- mean(df$rush_percentage, na.rm = TRUE)
 
   ggplot(df, aes(
-    x = pass_attempts,
-    y = rush_attempts,
+    x = pass_percentage,
+    y = rush_percentage,
     color = team
   )) +
     geom_point(size = 4) +
     geom_text_repel(aes(label = team),
-                    nudge_y = 5,
+                    nudge_y = 0.03,
                     size = 4,
                     fontface = "bold",
                     show.legend = FALSE) +
@@ -191,8 +198,8 @@ renderPlot({
     geom_hline(yintercept = nfl_avg_rush, linetype = "dashed", color = "black") +
     scale_color_manual(values = nfl_colors) +
     labs(
-      x = "Pass Attempts",
-      y = "Rush Attempts",
+      x = "Proportion Pass",
+      y = "Proportion Rush",
       title = paste("Offensive Play Tendencies —", input$year),
       subtitle = "NFL average indicated by the dashed lines"
     ) +
@@ -202,20 +209,46 @@ renderPlot({
 })
 ```
 
-#```{r, echo = FALSE}
 
-inputPanel(
-  selectInput("year", "Select Year:", choices = sort(unique(full_table$year)))
+Our analysis
+==========================
+
+Column {data-width = 200}
+-------------------------
+
+```{r, echo = FALSE}
+selectInput(
+  "metric",
+  "Choose a metric for the x-axis:",
+  choices = metrics,
+  selected = "pass_attempts",
+  multiple = FALSE
+)
+
+selectInput(
+  "ymetric",
+  "Choose a metric for the y-axis:",
+  choices = c("win_percentage","points_scored"),
+  selected = "win_percentage"
 )
 
 renderPlot({
-     if (input$play_check)
-        ggplot(full_table, aes(x = pass_attempts, y = rush_attempts))  +
-          geom_jitter(aes(color = team), size = 0.9, alpha = 0.4) +
-          scale_color_manual(values=c("orange","blue", "black"))
-     else if (!input$play_check)      
-        ggplot(full_table, aes(x = pass_attempts, y = rush_attempts))  +
-          geom_jitter(size = 0.9, alpha = 0.4) +
-          scale_color_manual(values=c("orange","blue", "black"))
+  req(input$metric, input$ymetric)
+
+  df <- full_table   # safer alias
+
+  ggplot(df, aes(
+    x = df[[input$metric]],
+    y = df[[input$ymetric]]
+  )) +
+    geom_point() +
+    geom_smooth(method = "lm", se = FALSE) +
+    labs(
+      x = input$metric,
+      y = input$ymetric,
+      title = paste(input$metric, "vs", input$ymetric)
+    ) +
+    theme_minimal(base_size = 16)
 })
 ```
+
