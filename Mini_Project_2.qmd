@@ -68,6 +68,7 @@ seahawks("https://www.pro-football-reference.com/teams/sea/2025_advanced.htm")
 ```
 
 One Team Function 2
+
 ```{r}
 # creates a function to extract text from HTML nodes
 safe_get <- function(page, css_selector, index = 1) {
@@ -99,9 +100,8 @@ seahawks2 <- function(url) {
 seahawks2("https://www.pro-football-reference.com/teams/sea/2024/gamelog/")
 ```
 
-
-
 For loop
+
 ```{r}
 library(tidyverse)
 library(glue)
@@ -168,8 +168,8 @@ nfl_tbl # view the data set
 
 ```
 
-
 For loop 2
+
 ```{r}
 # creates a function to extract text from HTML nodes
 safe_get <- function(page, css_selector, index = 1) {
@@ -221,11 +221,15 @@ nfl_tbl2 <- expand_grid(team_abbr = teams, year = years) |> # all team-year comb
 nfl_tbl2 # view the data set
 ```
 
-
-
 ```{r}
 # merges the two tables by team name
 full_table <- left_join(nfl_tbl,nfl_tbl2, join_by(team,year))
 full_table # view final data set
 
+```
+
+```{r}
+library(readr)
+
+write_csv(full_table, "mydata.csv")
 ```
