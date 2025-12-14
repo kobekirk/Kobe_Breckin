@@ -1,5 +1,5 @@
 ---
-title: "Offensive in the NFL"
+title: "NFL Offensive Strategy Effectiveness"
 output: 
   flexdashboard::flex_dashboard:
     theme: cerulean
@@ -26,9 +26,9 @@ library(ggrepel)
 ```
 
 ```{r, echo = FALSE}
-
+# Loads in dataset
 full_table <- read.csv("mydata.csv")
-
+# converts variables to numeric and creates derived variables
 full_table <- full_table |>
   mutate(
     indendend_air_yard = as.numeric(indendend_air_yard),
@@ -48,7 +48,7 @@ full_table <- full_table |>
     rush_percentage = rush_attempts / (rush_attempts + pass_attempts),
     pass_percentage = pass_attempts / (rush_attempts + pass_attempts)
   )
-
+# creates a vector to use for dropdown labels and data columns
 metrics <- c(
   "Pass Attempts" = "pass_attempts",
   "Rush Attempts" = "rush_attempts",
@@ -81,12 +81,12 @@ This interactive dashboard examines how offensive play style relates to team suc
 
 **Main Research Questions**
 
-- How do **pass attempts** and **rush attempts** relate to total points scored?
-- How do offensive tendencies relate to **wins** over a season?
+- How do **pass attempts** vs. **rush attempts** translate to how many points a team scores?
+- How do **pass attempts** vs. **rush attempts** translate to **wins** in a given season?
 
 **Our Hypothesis**
 
-We predict that when rush attempts increase the teams winning percentage increases as they are ahead and want to run out the clock. On the other hand we predict that as pass attempts increase the winning percentage decreases because these teams are having to play from behind and mount a comeback.
+We predict that more rushing attempts will correspond with more points scored and a higher winning percentage, because when teams are winning they tend to run the ball in an attempt to slow the game down. Likewise, we predict that more pass attempts will correspond with less points scored and a lower winning percentage, because when teams are losing they tend to throw the ball in an attempt to come back quickly.
 
 **Derived Metrics**
 
@@ -99,24 +99,25 @@ We predict that when rush attempts increase the teams winning percentage increas
 
 
 **Acknowledgments:**  
-All data used in this dashboard were collected from [Pro Football Reference](https://www.pro-football-reference.com).
+All data used in this dashboard was collected from [Pro Football Reference](https://www.pro-football-reference.com).
 This dashboard was developed for educational purposes.
 
 Check out our code on [Github](https://github.com/kobekirk/Kobe_Breckin/blob/main/FinalProject.Rmd)!
 
 </div>
 ```{r, echo=FALSE, fig.align='center', out.width='800px'}
+# displays the NFL logo in the About page
 knitr::include_graphics(path.expand("~/Kobe_Breckin/images/nfl-logo-png-0.png"))
 ```
 
 
 
-Interactive EDA Models
+Interactive Charts
 ==========================
 
 
 ```{r, echo = FALSE}
-
+# colors each team by their main team color
 nfl_colors <- c(
   CRD = "#97233F",  # Cardinals
   ATL = "#A71930",  # Falcons
@@ -151,7 +152,7 @@ nfl_colors <- c(
   OTI = "#4B92DB",  # Titans
   WAS = "#5A1414"   # Commanders
 )
-
+# same metrics vector as above
 metrics <- c(
   "Pass Attempts" = "pass_attempts",
   "Rush Attempts" = "rush_attempts",
@@ -169,9 +170,9 @@ metrics <- c(
   "% of Plays Rushing" = "rush_percentage",
   "% of Plays Passing" = "pass_percentage"
 )
-
+# vector of years in the dataset
 year1 <- c(2020, 2021, 2022, 2023, 2024)
-
+# allows user to choose a metric for the x-axis of graph
 selectInput(
   "metric",
   "Choose a metric for x-axis:",
@@ -179,23 +180,23 @@ selectInput(
   selected = "pass_attempts",   # value, not label
   multiple = FALSE
 )
-
+# allows user to select a specific year
 selectInput(
   "year1",
   "Select a year:",
   choices  = year1,
   multiple = FALSE
 )
-
+# makes a reactive bar chart by team
 renderPlot({
   req(input$metric, input$year1)
 
   metric_col <- input$metric                         # e.g. "pass_attempts"
   metric_lab <- names(metrics)[metrics == metric_col] # e.g. "Pass Attempts"
-
+# filters data by selected team
   filtered <- full_table |>
     dplyr::filter(year == input$year1)
-
+# ggplot code
   ggplot(filtered, aes(
     x = reorder(team, -.data[[metric_col]]),
     y = .data[[metric_col]],
@@ -215,6 +216,7 @@ renderPlot({
 
 
 ```{r, echo = FALSE}
+# panel for selecting a season
 inputPanel(
   selectInput("year", "Select Year:", choices = sort(unique(full_table$year))))
 
@@ -230,7 +232,7 @@ renderPlot({
   # Compute league averages
   nfl_avg_pass <- mean(df$pass_percentage, na.rm = TRUE)
   nfl_avg_rush <- mean(df$rush_percentage, na.rm = TRUE)
-
+# ggplot code
   ggplot(df, aes(
     x = pass_percentage,
     y = rush_percentage,
@@ -262,6 +264,7 @@ renderPlot({
 ## Plot 3
 
 ```{r, echo=FALSE}
+# team selector
 selectInput(
   "team",
   "Select a team:",
@@ -269,7 +272,7 @@ selectInput(
   selected = "NWE",
   multiple = FALSE
 )
-
+# metric selector
 selectInput(
   "metric_time",
   "Choose a metric:",
@@ -296,7 +299,7 @@ renderPlot({
       avg_metric = mean(.data[[input$metric_time]], na.rm = TRUE),
       .groups = "drop"
     )
-
+# ggplot code
   ggplot() +
     # Team line
     geom_line(data = team_data,aes(x = year,y = .data[[input$metric_time]]),
@@ -330,7 +333,7 @@ renderPlot({
 ```
 
 
-Our Analysis
+Analysis
 ==========================
 
 ```{r, echo = FALSE, fig.height=14}
@@ -348,7 +351,7 @@ x_choices <- metrics[
   )
 ]
 
-# UI dropdowns ----
+# select x-axis metric
 selectInput(
   "metric",
   "Choose a metric for the x-axis:",
@@ -356,7 +359,7 @@ selectInput(
   selected = "pass_attempts",
   multiple = FALSE
 )
-
+# select y-axis metric
 selectInput(
   "ymetric",
   "Choose a metric for the y-axis:",
@@ -364,7 +367,7 @@ selectInput(
   selected = "win_percentage"
 )
 
-# Plot ----
+# Plot 
 renderPlot({
   req(input$metric, input$ymetric)
 
