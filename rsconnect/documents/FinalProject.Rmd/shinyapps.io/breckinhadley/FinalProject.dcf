@@ -1,0 +1,12 @@
+name: FinalProject
+title: FinalProject
+username: breckinhadley
+account: breckinhadley
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 16324482
+bundleId: 11332913
+url: https://breckinhadley.shinyapps.io/FinalProject/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
